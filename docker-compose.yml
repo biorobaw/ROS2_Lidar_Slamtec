@@ -1,0 +1,60 @@
+# =============================================================================
+#  docker-compose.yml — ROS 2 Rolling + VNC Desktop
+# =============================================================================
+#
+#  Usage:
+#    docker compose up --build          # first run (builds image)
+#    docker compose up -d               # detached / background
+#    docker compose down                # stop & remove container
+#    docker compose exec ros2 bash      # open a shell inside the container
+#
+# =============================================================================
+
+services:
+  ros2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: rosdev
+        USER_UID: 1000
+        USER_GID: 1000
+    image: ros2-rolling-vnc:noble
+    container_name: ros2_dev
+
+    # ── Port mappings ──────────────────────────────────────────────────────
+    ports:
+      - "5901:5901"    # TigerVNC (connect with any VNC client)
+      - "6080:6080"    # noVNC   (open http://localhost:6080/vnc.html)
+
+    # ── Environment ────────────────────────────────────────────────────────
+    environment:
+      VNC_PASSWORD: ros2vnc          # override with your preferred password
+      VNC_RESOLUTION: 1920x1080      # e.g. 2560x1440 for hi-DPI
+      VNC_DEPTH: 24
+      VNC_PORT: 5901
+      NOVNC_PORT: 6080
+      DISPLAY: ":1"
+      ROS_DOMAIN_ID: 0
+
+    # ── Workspace volume ───────────────────────────────────────────────────
+    #   Place your ROS 2 packages in ./workspace on the host.
+    #   They will appear at /ros2_ws/src inside the container.
+    volumes:
+      - ./workspace:/ros2_ws/src
+
+    # ── Runtime options ────────────────────────────────────────────────────
+    privileged: false
+    shm_size: "512mb"                # needed for some RViz / rclcpp workloads
+    stdin_open: true
+    tty: true
+
+    # ── Healthcheck ────────────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080/vnc.html"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    restart: unless-stopped
