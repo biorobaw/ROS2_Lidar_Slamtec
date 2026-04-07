@@ -61,23 +61,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- developer user ---------------------------------
-ARG USERNAME=rosdev
-ARG USER_UID=1000
-ARG USER_GID=1000
-
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
-    && useradd --uid ${USER_UID} --gid ${USER_GID} \
-               --shell /bin/bash --create-home ${USERNAME} \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# ---------- use the default ubuntu user (UID/GID 1000) ----
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # ---------- ROS workspace ----------------------------------
 RUN mkdir -p /ros2_ws/src \
-    && chown -R ${USERNAME}:${USERNAME} /ros2_ws
+    && chown -R ubuntu:ubuntu /ros2_ws
 
-# ---------- switch to dev user ----------------------------
-USER ${USERNAME}
-WORKDIR /home/${USERNAME}
+# ---------- switch to ubuntu user -------------------------
+USER ubuntu
+WORKDIR /home/ubuntu
 
 # ---------- rosdep user update ----------------------------
 RUN rosdep update
@@ -92,30 +85,29 @@ ENV DISPLAY=:1
 # VNC password (change via env var VNC_PASSWORD at runtime)
 ENV VNC_PASSWORD=ros2vnc
 
-RUN mkdir -p /home/${USERNAME}/.vnc
+RUN mkdir -p /home/ubuntu/.vnc
 
 # XFCE startup script
-RUN echo '#!/bin/bash\n\
-exec startxfce4' > /home/${USERNAME}/.vnc/xstartup \
-    && chmod +x /home/${USERNAME}/.vnc/xstartup
+RUN printf '#!/bin/bash\nexec startxfce4\n' > /home/ubuntu/.vnc/xstartup \
+    && chmod +x /home/ubuntu/.vnc/xstartup
 
 # ---------- shell environment ------------------------------
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "source /ros2_ws/install/setup.bash 2>/dev/null || true" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "export ROS_DOMAIN_ID=0" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "# ROS 2 aliases" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "alias cb='cd /ros2_ws && colcon build --symlink-install'" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "alias cbs='cd /ros2_ws && colcon build --symlink-install --packages-select'" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "alias ct='cd /ros2_ws && colcon test'" \
-        >> /home/${USERNAME}/.bashrc \
+        >> /home/ubuntu/.bashrc \
     && echo "alias src='source /ros2_ws/install/setup.bash'" \
-        >> /home/${USERNAME}/.bashrc
+        >> /home/ubuntu/.bashrc
 
 # ---------- supervisord config (root-owned) ---------------
 USER root

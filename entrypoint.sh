@@ -4,7 +4,7 @@
 # =============================================================================
 set -e
 
-ROSDEV_USER="rosdev"
+ROSDEV_USER="ubuntu"
 ROSDEV_HOME="/home/${ROSDEV_USER}"
 VNC_PORT="${VNC_PORT:-5901}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1920x1080}"
